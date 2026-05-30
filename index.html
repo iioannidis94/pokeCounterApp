@@ -3,15 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pokémon Team Builder - IV & EV Training</title>
+<title>Pokémon Ultimate Hub</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png">
 <style>
   :root {
     --bg: #121212;
     --card-bg: #1e1e1e;
     --text: #ffffff;
     --dim: #aaaaaa;
-    --primary: #4caf50;
-    --danger: #f44336;
+    --primary: #3b82f6;
+    --secondary: #8b5cf6;
+    --danger: #ef4444;
+    --success: #10b981;
     --border: #333333;
   }
   body {
@@ -19,292 +22,115 @@
     background-color: var(--bg);
     color: var(--text);
     margin: 0;
-    padding: 20px;
+    padding: 0;
   }
-  h1, h2 { text-align: center; }
   
-  /* Search Section */
-  .search-container {
-    max-width: 600px;
-    margin: 0 auto 30px;
-    position: relative;
-  }
-  input[type="text"] {
-    width: 100%;
-    padding: 12px;
-    font-size: 16px;
+  /* Navbar */
+  nav {
     background: var(--card-bg);
-    border: 1px solid var(--border);
-    color: var(--text);
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+  }
+  nav button {
+    background: transparent;
+    color: var(--dim);
+    border: 1px solid transparent;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 8px 16px;
     border-radius: 8px;
-    box-sizing: border-box;
+    transition: 0.2s;
+  }
+  nav button:hover { color: var(--text); background: rgba(255,255,255,0.1); }
+  nav button.active { color: var(--text); border-color: var(--primary); background: rgba(59, 130, 246, 0.1); }
+
+  .view { display: none; padding: 20px; max-width: 1200px; margin: 0 auto; }
+  .view.active { display: block; }
+
+  h1, h2 { text-align: center; margin-bottom: 30px; }
+
+  /* Home View */
+  .home-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 30px;
+    margin-top: 50px;
+  }
+  .big-btn {
+    background: var(--card-bg);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    width: 300px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+  .big-btn:hover { transform: translateY(-5px); border-color: var(--primary); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+  .big-btn h2 { margin: 0 0 15px 0; color: var(--primary); }
+  .big-btn.purple h2 { color: var(--secondary); }
+  .big-btn.purple:hover { border-color: var(--secondary); }
+  .big-btn p { color: var(--dim); margin: 0; }
+
+  /* Search Component */
+  .search-container { max-width: 600px; margin: 0 auto 30px; position: relative; }
+  input[type="text"] {
+    width: 100%; padding: 15px; font-size: 16px;
+    background: var(--card-bg); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; box-sizing: border-box;
   }
   .search-results {
-    position: absolute;
-    top: 100%; left: 0; right: 0;
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-top: none;
-    border-radius: 0 0 8px 8px;
-    max-height: 300px;
-    overflow-y: auto;
-    z-index: 10;
-    display: none;
+    position: absolute; top: 100%; left: 0; right: 0;
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-top: none; border-radius: 0 0 8px 8px;
+    max-height: 300px; overflow-y: auto; z-index: 10; display: none;
   }
-  .search-item {
-    display: flex;
-    align-items: center;
-    padding: 10px;
-    border-bottom: 1px solid var(--border);
-  }
+  .search-item { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid var(--border); }
   .search-item:last-child { border-bottom: none; }
   .search-item img { width: 50px; height: 50px; margin-right: 15px; }
   .search-item span { flex-grow: 1; text-transform: capitalize; font-weight: bold; }
-  button {
-    cursor: pointer; padding: 8px 12px;
-    border: none; border-radius: 4px; font-weight: bold;
-    background: var(--primary); color: white;
-  }
-  button:hover { opacity: 0.9; }
-  button.remove-btn { background: var(--danger); margin-top: 10px; width: 100%; }
+  
+  .btn-add { background: var(--success); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+  .btn-add:hover { opacity: 0.9; }
 
-  /* Team Grid */
-  .team-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 20px;
-    max-width: 1200px;
-    margin: 0 auto;
+  /* Counters View */
+  #countersResult {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; max-width: 600px; margin: 0 auto; text-align: center;
+    display: none;
   }
-  .poke-card {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 15px;
+  .types-badges span {
+    display: inline-block; padding: 5px 10px; margin: 0 5px; border-radius: 4px; font-weight: bold; text-transform: uppercase; font-size: 12px; border: 1px solid rgba(255,255,255,0.3);
   }
-  .poke-header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 15px;
-  }
+  .weakness-row { display: flex; align-items: center; margin-top: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; text-align: left; }
+  .w-label { width: 80px; font-weight: bold; font-size: 14px; }
+  .w-types { flex-grow: 1; display: flex; flex-wrap: wrap; gap: 5px; }
+  .w-types span { font-size: 12px; padding: 3px 8px; border-radius: 4px; background: #333; }
+
+  /* Team Builder View */
+  .team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+  .poke-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 15px; }
+  .poke-header { display: flex; align-items: center; margin-bottom: 15px; }
   .poke-header img { width: 80px; height: 80px; }
   .poke-info { flex-grow: 1; margin-left: 10px; }
   .poke-info h3 { margin: 0 0 5px 0; text-transform: capitalize; }
-  .level-input {
-    width: 50px; background: #000; color: #fff; border: 1px solid var(--border);
-    padding: 4px; text-align: center; border-radius: 4px;
-  }
-
-  /* Stats Table */
+  .level-input { width: 50px; background: #000; color: #fff; border: 1px solid var(--border); padding: 4px; text-align: center; border-radius: 4px; }
+  
   .stats-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .stats-table th, .stats-table td { text-align: center; padding: 4px 2px; }
   .stats-table th { color: var(--dim); font-weight: normal; }
   .stats-table td.stat-name { text-align: left; font-weight: bold; }
-  .stats-table input {
-    width: 45px; background: #000; color: #fff;
-    border: 1px solid var(--border); padding: 4px;
-    text-align: center; border-radius: 4px;
-  }
+  .stats-table input { width: 45px; background: #000; color: #fff; border: 1px solid var(--border); padding: 4px; text-align: center; border-radius: 4px; }
   .final-stat { font-weight: bold; color: var(--primary); font-size: 15px; }
+  .remove-btn { background: var(--danger); color: white; border: none; width: 100%; padding: 8px; margin-top: 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
 
 </style>
 </head>
 <body>
 
-<h1>Pokémon Team Builder</h1>
-<div class="search-container">
-  <input type="text" id="searchInput" placeholder="Search Pokémon to add..." autocomplete="off">
-  <div class="search-results" id="searchResults"></div>
-</div>
-
-<h2>My Team</h2>
-<div class="team-grid" id="teamGrid"></div>
-
-<script>
-  let allPokemonList = [];
-  let team = [];
-  let pokeIdCounter = 0; // Unique ID for team slots
-
-  // Fetch all pokemon names on load for the search bar
-  async function fetchPokemonList() {
-    try {
-      const res = await fetch('https://pokeapi.co/api/v2/pokemon?limit=10000');
-      const data = await res.json();
-      allPokemonList = data.results;
-    } catch (e) {
-      console.error("Failed to fetch Pokémon list");
-    }
-  }
-
-  const searchInput = document.getElementById('searchInput');
-  const searchResults = document.getElementById('searchResults');
-
-  searchInput.addEventListener('input', (e) => {
-    const query = e.target.value.toLowerCase().trim();
-    if (!query) {
-      searchResults.style.display = 'none';
-      return;
-    }
-    
-    // Filter list
-    const filtered = allPokemonList.filter(p => p.name.includes(query)).slice(0, 30);
-    
-    searchResults.innerHTML = filtered.map(p => {
-      // Extract ID from URL to get the sprite
-      const id = p.url.split('/').filter(Boolean).pop();
-      const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
-      return `
-        <div class="search-item">
-          <img src="${sprite}" onerror="this.src='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='">
-          <span>${p.name.replace(/-/g, ' ')}</span>
-          <button onclick="addPokemon('${p.name}', '${p.url}')">+ Add</button>
-        </div>
-      `;
-    }).join('');
-    
-    searchResults.style.display = filtered.length ? 'block' : 'none';
-  });
-
-  // Hide search when clicking outside
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.search-container')) {
-      searchResults.style.display = 'none';
-    }
-  });
-
-  async function addPokemon(name, url) {
-    searchResults.style.display = 'none';
-    searchInput.value = '';
-    
-    try {
-      // Fetch full stats for the selected pokemon
-      const res = await fetch(url);
-      const data = await res.json();
-      
-      const statsObj = {};
-      data.stats.forEach(s => { statsObj[s.stat.name] = s.base_stat; });
-
-      const newPoke = {
-        uid: pokeIdCounter++,
-        id: data.id,
-        name: data.name,
-        sprite: data.sprites.front_default,
-        level: 50,
-        base: statsObj,
-        iv: { hp: 31, attack: 31, defense: 31, 'special-attack': 31, 'special-defense': 31, speed: 31 },
-        ev: { hp: 0, attack: 0, defense: 0, 'special-attack': 0, 'special-defense': 0, speed: 0 }
-      };
-
-      team.push(newPoke);
-      renderTeam();
-    } catch (e) {
-      console.error("Error fetching Pokémon details", e);
-    }
-  }
-
-  function removePokemon(uid) {
-    team = team.filter(p => p.uid !== uid);
-    renderTeam();
-  }
-
-  function updateData(uid, field, stat, value) {
-    const poke = team.find(p => p.uid === uid);
-    if (!poke) return;
-    
-    let val = parseInt(value) || 0;
-    
-    if (field === 'level') {
-      val = Math.min(Math.max(val, 1), 100); // 1 to 100
-      poke.level = val;
-    } else if (field === 'iv') {
-      val = Math.min(Math.max(val, 0), 31); // 0 to 31
-      poke.iv[stat] = val;
-    } else if (field === 'ev') {
-      val = Math.min(Math.max(val, 0), 252); // 0 to 252
-      poke.ev[stat] = val;
-    }
-    
-    renderTeam();
-  }
-
-  // standard formula for modern pokemon stat calculation
-  function calculateStat(base, iv, ev, level, isHp) {
-    if (base === 1) return 1; // Shedinja HP exception
-    let math = Math.floor(0.01 * (2 * base + iv + Math.floor(0.25 * ev)) * level);
-    return isHp ? math + level + 10 : math + 5;
-  }
-
-  function renderTeam() {
-    const teamGrid = document.getElementById('teamGrid');
-    
-    if (team.length === 0) {
-      teamGrid.innerHTML = '<div style="color:var(--dim); text-align:center; grid-column: 1/-1;">No Pokémon added yet. Search and add some!</div>';
-      return;
-    }
-
-    const statLabels = [
-      { key: 'hp', label: 'HP' },
-      { key: 'attack', label: 'Atk' },
-      { key: 'defense', label: 'Def' },
-      { key: 'special-attack', label: 'SpA' },
-      { key: 'special-defense', label: 'SpD' },
-      { key: 'speed', label: 'Spe' }
-    ];
-
-    teamGrid.innerHTML = team.map(p => {
-      const statsHtml = statLabels.map(s => {
-        const isHp = s.key === 'hp';
-        const finalStat = calculateStat(p.base[s.key], p.iv[s.key], p.ev[s.key], p.level, isHp);
-        
-        return `
-          <tr>
-            <td class="stat-name">${s.label}</td>
-            <td>${p.base[s.key]}</td>
-            <td><input type="number" min="0" max="31" value="${p.iv[s.key]}" onchange="updateData(${p.uid}, 'iv', '${s.key}', this.value)"></td>
-            <td><input type="number" min="0" max="252" step="4" value="${p.ev[s.key]}" onchange="updateData(${p.uid}, 'ev', '${s.key}', this.value)"></td>
-            <td class="final-stat">${finalStat}</td>
-          </tr>
-        `;
-      }).join('');
-
-      return `
-        <div class="poke-card">
-          <div class="poke-header">
-            <img src="${p.sprite}" alt="${p.name}">
-            <div class="poke-info">
-              <h3>${p.name.replace(/-/g, ' ')}</h3>
-              <div>
-                <label style="color:var(--dim);font-size:12px;">Level: </label>
-                <input class="level-input" type="number" min="1" max="100" value="${p.level}" onchange="updateData(${p.uid}, 'level', null, this.value)">
-              </div>
-            </div>
-          </div>
-          
-          <table class="stats-table">
-            <thead>
-              <tr>
-                <th style="text-align:left;">Stat</th>
-                <th>Base</th>
-                <th>IVs</th>
-                <th>EVs</th>
-                <th>Final</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${statsHtml}
-            </tbody>
-          </table>
-          
-          <button class="remove-btn" onclick="removePokemon(${p.uid})">Remove</button>
-        </div>
-      `;
-    }).join('');
-  }
-
-  // Init
-  fetchPokemonList();
-  renderTeam();
-
-</script>
-</body>
-</html>
+<nav id="navbar">
+  <button onclick="switchView('home')"
