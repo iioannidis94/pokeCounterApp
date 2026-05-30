@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="el">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -137,11 +137,11 @@ main{position:relative;z-index:1;padding:14px 12px;max-width:1700px;margin:0 aut
   <div class="logo">POKÉ<span>DEX</span></div>
   <div class="sw">
     <span class="si">🔍</span>
-    <input type="text" id="search" placeholder="Αναζήτηση: όνομα, #αριθμός, type…" autocomplete="off" spellcheck="false">
+    <input type="text" id="search" placeholder="Search: name, #number, type…" autocomplete="off" spellcheck="false">
   </div>
 </header>
 <div class="tfs" id="tf"></div>
-<div class="sb"><span id="cnt">Φόρτωση...</span></div>
+<div class="sb"><span id="cnt">Loading...</span></div>
 <main><div id="grid"></div></main>
 
 <script>
@@ -170,9 +170,9 @@ function dmgH(types){
   if(x4.length)  h+=`<div class="dr"><span class="dl w">×4 🔥</span><span class="dt">${x4.map(t=>dbw(t,'×4')).join('')}</span></div>`;
   if(x2.length)  h+=`<div class="dr"><span class="dl w">×2 ⚡</span><span class="dt">${x2.map(t=>dbw(t,'×2')).join('')}</span></div>`;
   const res=[...qtr.map(t=>dbw(t,'×¼')),...half.map(t=>dbw(t,'×½'))];
-  if(res.length) h+=`<div class="dr"><span class="dl r">↓ Αντοχή</span><span class="dt">${res.join('')}</span></div>`;
-  if(imm.length) h+=`<div class="dr"><span class="dl im">✕ Ανοσία</span><span class="dt">${imm.map(dbs).join('')}</span></div>`;
-  if(!h)         h='<div class="ntrl">Κανονική αντίσταση παντού</div>';
+  if(res.length) h+=`<div class="dr"><span class="dl r">↓ Resist</span><span class="dt">${res.join('')}</span></div>`;
+  if(imm.length) h+=`<div class="dr"><span class="dl im">✕ Immune</span><span class="dt">${imm.map(dbs).join('')}</span></div>`;
+  if(!h)         h='<div class="ntrl">No special weaknesses</div>';
   return h;
 }
 
@@ -219,9 +219,9 @@ function render(){
   let list=POKE;
   if(ql)list=list.filter(p=>p.name.replace(/-/g,' ').includes(ql)||String(p.id).includes(ql)||p.types.some(t=>t.includes(ql)));
   if(activeT)list=list.filter(p=>p.types.includes(activeT));
-  cntEl.innerHTML=`Εμφάνιση <strong>${list.length}</strong> / ${POKE.length} Pokémon`;
+  cntEl.innerHTML=`Showing <strong>${list.length}</strong> / ${POKE.length} Pokémon`;
   if(!list.length){
-    grid.innerHTML='<div class="nores"><div class="em">😴</div><p>Δεν βρέθηκε Pokémon για "'+ql+'"</p></div>';
+    grid.innerHTML='<div class="nores"><div class="em">😴</div><p>No Pokémon found for "'+ql+'"</p></div>';
     return;
   }
   grid.innerHTML=list.map(card).join('');
