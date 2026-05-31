@@ -16,11 +16,16 @@ body::before{
 }
 
 /* HEADER */
-header{
-  position:sticky;top:0;z-index:100;
-  background:rgba(13,13,26,.97);backdrop-filter:blur(16px);
-  border-bottom:1px solid var(--brd);
-  padding:13px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(13,13,26,.97); backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--brd);
+  padding: 13px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: nowrap; /* ΑΛΛΑΞΕ ΤΟ ΑΠΟ wrap ΣΕ nowrap */
+  overflow-x: auto;  /* ΕΠΙΤΡΕΠΕΙ ΤΟ ΟΡΙΖΟΝΤΙΟ SCROLL */
 }
 .logo{font-family:'Press Start 2P',monospace;font-size:13px;color:var(--yel);
   text-shadow:0 0 24px rgba(255,204,0,.5);white-space:nowrap;}
@@ -128,7 +133,28 @@ body.dex-view .sw{display:block}
 @media(max-width:620px){.teamBtn,.dexBtn{margin-left:0;flex:1;text-align:center}.logo{width:100%}}
 .teamOverlay{position:fixed;inset:0;z-index:300;background:rgba(5,5,12,.82);backdrop-filter:blur(10px);display:none;padding:18px;overflow:auto}.teamOverlay.open{display:block}
 .teamPanel{width:min(1320px,100%);margin:0 auto;background:var(--surf);border:1px solid var(--brd);border-radius:var(--r);box-shadow:0 22px 80px rgba(0,0,0,.55);overflow:hidden}
-.teamTop{position:sticky;top:0;z-index:2;background:rgba(19,19,42,.98);border-bottom:1px solid var(--brd);padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}.teamTitle{font-family:'Press Start 2P',monospace;font-size:12px;color:var(--yel);margin-right:auto}
+
+/* --- ΔΙΟΡΘΩΣΗ ΓΙΑ ΜΟΝΗ ΓΡΑΜΜΗ ΣΤΗΝ ΠΑΝΩ ΜΠΑΡΑ (Οριζόντιο Scroll) --- */
+.teamTop {
+  position: sticky; 
+  top: 0; 
+  z-index: 2; 
+  background: rgba(19, 19, 42, .98); 
+  border-bottom: 1px solid var(--brd); 
+  padding: 14px 16px 12px 16px !important; 
+  display: flex; 
+  align-items: center; 
+  gap: 12px; 
+  flex-wrap: nowrap !important;
+  overflow-x: auto;
+}
+.teamTop::-webkit-scrollbar { height: 6px; }
+.teamTop::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 10px; }
+.teamTop::-webkit-scrollbar-thumb { background: var(--brd); border-radius: 10px; }
+.teamTop::-webkit-scrollbar-thumb:hover { background: var(--dim); }
+.teamTitle, .teamTool, .teamReset, .teamClose, .importTool { flex-shrink: 0; white-space: nowrap; }
+
+.teamTitle{font-family:'Press Start 2P',monospace;font-size:12px;color:var(--yel);margin-right:auto}
 .teamClose,.teamReset,.teamTool{border:1px solid var(--brd);background:var(--surf2);color:var(--txt);border-radius:50px;padding:8px 12px;font-family:'Nunito',sans-serif;font-weight:900;cursor:pointer}.teamTool{border-color:var(--yel);color:var(--yel);background:rgba(255,204,0,.08);font-size:12px}.importTool{display:inline-flex;align-items:center}.teamReset{border-color:var(--red);color:#fff;background:rgba(255,68,102,.16)}
 .teamBody{display:grid;grid-template-columns:minmax(280px,360px) 1fr;gap:0;min-height:620px}.teamPicker{border-right:1px solid var(--brd);padding:14px;background:#101024}
 .teamSearch{width:100%;background:var(--surf2);border:1.5px solid var(--brd);border-radius:50px;color:var(--txt);font-family:'Nunito',sans-serif;font-weight:800;padding:10px 14px;outline:none;margin-bottom:10px}.teamSearch:focus{border-color:var(--yel);box-shadow:0 0 0 3px rgba(255,204,0,.13)}
@@ -240,4 +266,15 @@ body.dex-view .sw{display:block}
   .sw2{width:62px;height:62px}
   .sw2 img{width:56px;height:56px}
   header{padding:10px 12px}
+}
+
+/* Styling για το scroll της μπάρας */
+header::-webkit-scrollbar { height: 4px; }
+header::-webkit-scrollbar-track { background: transparent; }
+header::-webkit-scrollbar-thumb { background: var(--brd); border-radius: 2px; }
+
+/* Αναγκάζουμε τα στοιχεία να μην μικραίνουν */
+.logo, .sw, .teamBtn, .dexBtn {
+  flex-shrink: 0;
+  white-space: nowrap;
 }

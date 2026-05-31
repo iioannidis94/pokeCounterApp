@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Pokédex — Type Chart</title>
-<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAClElEQVR4nO2bO1bDMBBFX3LovQOnoHdLzw5YKTugT+ueItlBVhAKzuSIsX6jz0gyeR2Obek+zUijBAH/XAfNxuZ5vsfee71eVfpWtREO/CV49p39XcuQ4i81oSXAIZmGlDSj2ItqgXOVNiL7BQReE9olMiPHiGNOB1rCm+1KJleuZOfmeb63ArfpHWmRIH6g9aj7lJISohToGR5IS4loA3qHJ0lNiDJgFHiSxISgAaPBk2JNiIqA0eBJMf32zpYpS93r5fLBr32fTp/C1xSVb4l0RkApeN91LX3BnQpWA1IqqxBkaxMAO5czAkbNe5dcPBsDeitxS8qWClmbIVOhia71ROjSHwNydlWAG7I3eJPzwD/Ya/ibMpfFYikwqh4RoD36/EtPQHfloSh4UWzz0XDoM00j1Azwgbvu1TBCxQAb/Lqum2vLsmyeq23CEdDPfxu873oNUVFUfRXgo0+Q0zSdp2k68/u5CZLUSdEByC+AYmXCm9dvt9sbv5enQy2p1QHS8NZKhyaFkDnittHXlHodQGoNTvr3pfDTAK2GpLO61irwWAZrzbocJKadlGdStCxL/QjgnQ+NrBY86Qj8bgu1Qg5wm6DdB7Xt8LquG7gYWI1iSK0OIJhewEnqhZDPCE1w0uZL0Rad0BblP/AshLYGaM7ELcT5/hig9f+5rWVyPlOAX9AuijRlTn4kZwTszQQXj9WAvc4FNi5nBOwpFWyhT/JOgnswwQcPRK4Co5oQ0++gAeTeaCZQf0PzWVQEjGZCLDwgKIRGMUECDwgrwd5NkMIDmSdGeto6h2Z7l7IKHvpRtaURKaNuKmsz1DolcuGBSucGa0aEaXYX5wa5ahlRGpykenZYYghPq2HODvvU4+nxH0NuMn0Jo27yAAAAAElFTkSuQmCC">
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Pokédex — Type Chart</title>
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAClElEQVR4nO2bO1bDMBBFX3LovQOnoHdLzw5YKTugT+ueItlBVhAKzuSIsX6jz0gyeR2Obek+zUijBAH/XAfNxuZ5vsfee71eVfpWtREO/CV49p39XcuQ4i81oSXAIZmGlDSj2ItqgXOVNiL7BQReE9olMiPHiGNOB1rCm+1KJleuZOfmeb63ArfpHWmRIH6g9aj7lJISohToGR5IS4loA3qHJ0lNiDJgFHiSxISgAaPBk2JNiIqA0eBJMf32zpYpS93r5fLBr32fTp/C1xSVb4l0RkApeN91LX3BnQpWA1IqqxBkaxMAO5czAkbNe5dcPBsDeitxS8qWClmbIVOhia71ROjSHwNydlWAG7I3eJPzwD/Ya/ibMpfFYikwqh4RoD36/EtPQHfloSh4UWzz0XDoM00j1Azwgbvu1TBCxQAb/Lqum2vLsmyeq23CEdDPfxu873oNUVFUfRXgo0+Q0zSdp2k68/u5CZLUSdEByC+AYmXCm9dvt9sbv5enQy2p1QHS8NZKhyaFkDnittHXlHodQGoNTvr3pfDTAK2GpLO61irwWAZrzbocJKadlGdStCxL/QjgnQ+NrBY86Qj8bgu1Qg5wm6DdB7Xt8LquG7gYWI1iSK0OIJhewEnqhZDPCE1w0uZL0Rad0BblP/AshLYGaM7ELcT5/hig9f+5rWVyPlOAX9AuijRlTn4kZwTszQQXj9WAvc4FNi5nBOwpFWyhT/JOgnswwQcPRK4Co5oQ0++gAeTeaCZQf0PzWVQEjGZCLDwgKIRGMUECDwgrwd5NkMIDmSdGeto6h2Z7l7IKHvpRtaURKaNuKmsz1DolcuGBSucGa0aEaXYX5wa5ahlRGpykenZYYghPq2HODvvU4+nxH0NuMn0Jo27yAAAAAElFTkSuQmCC">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    
+
 <header>
   <div class="logo">POKÉ<span>DEX</span></div>
   <div class="sw">
@@ -19,30 +19,39 @@
   <button class="teamBtn" id="myTeamBtn" type="button">Team Builder</button>
   <button class="teamBtn dexBtn" id="dexViewBtn" type="button">Weaknesses / Counters</button>
 </header>
+
 <div class="tfs" id="tf"></div>
 <div class="sb"><span id="cnt">Loading...</span></div>
 <main><div id="grid"></div></main>
+
 <div class="teamOverlay" id="teamOverlay" aria-hidden="true">
   <section class="teamPanel" role="dialog" aria-modal="true" aria-labelledby="teamTitle">
     <div class="teamTop">
       <h2 class="teamTitle" id="teamTitle">TEAM BUILDER</h2>
       
-      <!-- Επιλογέας και Κουμπιά Πολλαπλών Ομάδων -->
       <select id="teamSelect" class="teamTool" style="margin: 0 10px; padding: 6px; cursor: pointer;"></select>
       <button id="addTeamBtn" class="teamTool" type="button">+ New Team</button>
       <button id="renameTeamBtn" class="teamTool" type="button" style="margin-right: auto;">Rename</button>
       
+      <button class="teamTool" id="autoTeamBtn" type="button" style="border-color: #38d878; color: #38d878; background: rgba(56,216,120,0.1);">✨ Auto-Build 6</button>
       <button class="teamTool" id="teamExport" type="button">Export JSON</button>
       <label class="teamTool importTool" for="teamImport">Import JSON</label>
       <input id="teamImport" type="file" accept="application/json,.json" hidden>
       <button class="teamReset" id="teamReset" type="button">Clear Team</button>
       <button class="teamClose" id="teamClose" type="button">Close</button>
-  </div> 
-    <div class="teamBody"><aside class="teamPicker"><input class="teamSearch" id="teamSearch" type="text" placeholder="Search Pokémon to add..." autocomplete="off" spellcheck="false"><div class="teamList" id="teamList"></div></aside><section class="teamSlots" id="teamSlots"></section></div>
+    </div> 
+    <div class="teamBody">
+        <aside class="teamPicker">
+            <input class="teamSearch" id="teamSearch" type="text" placeholder="Search Pokémon to add..." autocomplete="off" spellcheck="false">
+            <div class="teamList" id="teamList"></div>
+        </aside>
+        <section class="teamSlots" id="teamSlots"></section>
+    </div>
   </section>
 </div>
 
 <script src="data.js" defer></script>
-<script src="app.js" defer></script>
+<script src="dex.js" defer></script>
+<script src="team.js" defer></script>
 </body>
 </html>
