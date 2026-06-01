@@ -81,21 +81,38 @@
         team.forEach(s => s.calc = false);
         let bestTeam = [];
         
-        const getRole = (slot) => {
-            let hp = Number(slot.ev.HP)||0, def = Number(slot.ev.DEF)||0, spd = Number(slot.ev.SPDEF)||0;
-            let atk = Number(slot.ev.ATK)||0, spa = Number(slot.ev.SPATK)||0;
-            if (hp + def + spd >= 250) return 'tank';
-            if (atk > spa) return 'physical';
-            if (spa > atk) return 'special';
-            return 'mixed';
-        };
+     const getRole = (slot, p) => {
+    // 1. Προτεραιότητα στα EVs αν υπάρχουν
+    let hp = Number(slot.ev.HP)||0, def = Number(slot.ev.DEF)||0, spd = Number(slot.ev.SPDEF)||0;
+    let atk = Number(slot.ev.ATK)||0, spa = Number(slot.ev.SPATK)||0;
+    
+    if (hp + def + spd >= 250) return 'tank';
+    if (atk > spa && atk > 100) return 'physical';
+    if (spa > atk && spa > 100) return 'special';
+
+    // 2. Αν δεν υπάρχουν EVs, χρησιμοποίησε τα Base Stats από το data.js
+    const stats = BASE_STATS[p.id];
+    if (stats) {
+        if (stats.def > 100 || stats.spd > 100) return 'tank';
+        if (stats.atk > stats.spa + 20) return 'physical';
+        if (stats.spa > stats.atk + 20) return 'special';
+    }
+    return 'mixed';
+}; 
 
         while (bestTeam.length < 6 && bestTeam.length < pool.length) {
             let bestScore = -Infinity, bestCandidate = null;
             pool.filter(x => !bestTeam.includes(x)).forEach(candidate => {
                 let score = 0;
                 let cTypes = candidate.p.types;
-                let cRole = getRole(candidate.slot);
+                let cRole = getRole(candidate.slot, candidate.p); // Χρησιμοποιεί τη νέα getRole
+
+                // --- ΝΕΟ: Bonus βάσει Base Stats (BST) ---
+                const stats = BASE_STATS[candidate.p.id];
+                if (stats) {
+                    let bst = stats.hp + stats.atk + stats.def + stats.spa + stats.spd + stats.spe;
+                    score += (bst - 300) / 10; // Τα δυνατά Pokémon παίρνουν αυτόματα μεγαλύτερο score
+                }
 
                 if (bestTeam.length === 0) {
                     score += candidate.slot.moves.filter(m => m).length * 10;
@@ -103,6 +120,7 @@
                     return;
                 }
 
+                // ... (Ο υπόλοιπος κώδικας για weaknesses και moves παραμένει ίδιος) ...
                 let teamWeaknesses = {};
                 AT.forEach(t => teamWeaknesses[t] = 0);
                 bestTeam.forEach(member => {
@@ -127,7 +145,7 @@
                     if (!teamMoveTypes.has(mt)) score += 15; 
                 });
 
-                let teamRoles = bestTeam.map(m => getRole(m.slot));
+                let teamRoles = bestTeam.map(m => getRole(m.slot, m.p));
                 let tanks = teamRoles.filter(r => r === 'tank').length;
                 let phys = teamRoles.filter(r => r === 'physical').length;
                 let spec = teamRoles.filter(r => r === 'special').length;
@@ -275,6 +293,278 @@
 
     // Η κλήση για το νέο Auto-Build AI
     document.getElementById('autoTeamBtn')?.addEventListener('click', autoRecommendTeam);
+
+    // ─────────────────────────────────────────────────────────────────
+    // SHOWDOWN PASTE IMPORT
+    // Parses the Pokémon Showdown export format:
+    //   Floatzel @ Leftovers
+    //   Level: 63
+    //   Bashful Nature
+    //   Ability: Swift Swim
+    //   EVs: 92 HP / 109 Atk / 69 Def / 87 SpA / 43 SpD / 110 Spe
+    //   IVs: 31 HP / 26 Atk / 19 Def / 12 SpA / 11 SpD / 28 Spe
+    //   - Dig
+    //   - Liquidation
+    // ─────────────────────────────────────────────────────────────────
+
+    /** Map Showdown stat abbreviations → our internal keys */
+    const SD_STAT_MAP = {
+        hp: 'HP', atk: 'ATK', def: 'DEF',
+        spa: 'SPATK', spd: 'SPDEF', spe: 'SPD',
+        // some exports use full names
+        'special-attack': 'SPATK', 'special-defense': 'SPDEF', speed: 'SPD'
+    };
+
+    /**
+     * Parse a single Showdown-format block (one Pokémon).
+     * Returns a slot object ready for normalizeSlot(), or null on failure.
+     */
+    function parseShowdownBlock(text) {
+        const lines = text.split('\n').map(l => l.trim()).filter(l => l.length);
+        if (!lines.length) return null;
+
+        const slot = EMPTY_SLOT();
+        const moveNames = [];
+
+        // ── Line 1: "Name (Nickname) @ Item"  or  "Name @ Item"  or  just "Name"
+        const firstLine = lines[0];
+        const atIdx = firstLine.indexOf(' @ ');
+        let rawName = atIdx !== -1 ? firstLine.slice(0, atIdx).trim() : firstLine.trim();
+        if (atIdx !== -1) slot.item = firstLine.slice(atIdx + 3).trim();
+
+        // Strip gender tokens like "(M)" / "(F)"
+        rawName = rawName.replace(/\s*\((M|F)\)\s*$/, '').trim();
+
+        // Strip nickname: "Nickname (SpeciesName)" → use SpeciesName
+        const nicknameMatch = rawName.match(/^.+\((.+)\)\s*$/);
+        if (nicknameMatch) rawName = nicknameMatch[1].trim();
+
+        // Normalise to the identifier format used in POKE (lowercase, hyphens)
+        const normalised = rawName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+        // Try exact match first, then partial
+        let pokemon = POKE.find(p => p.name === normalised)
+            || POKE.find(p => p.name.startsWith(normalised))
+            || POKE.find(p => normalised.startsWith(p.name))
+            || POKE.find(p => p.name.replace(/-/g, '') === normalised.replace(/-/g, ''));
+
+        if (!pokemon) return null;   // unknown Pokémon → bail out
+        slot.pokemonId = pokemon.id;
+
+        // ── Remaining lines
+        for (let li = 1; li < lines.length; li++) {
+            const line = lines[li];
+
+            // Level: 63
+            const lvMatch = line.match(/^Level:\s*(\d+)/i);
+            if (lvMatch) { slot.level = parseInt(lvMatch[1], 10); continue; }
+
+            // Bashful Nature
+            const natMatch = line.match(/^(\w+)\s+Nature$/i);
+            if (natMatch) {
+                const nat = natMatch[1];
+                // capitalise first letter to match our TEAM_NATURES list
+                slot.nature = nat.charAt(0).toUpperCase() + nat.slice(1).toLowerCase();
+                continue;
+            }
+
+            // Ability: Swift Swim
+            const abilMatch = line.match(/^Ability:\s*(.+)/i);
+            if (abilMatch) { slot.ability = abilMatch[1].trim(); continue; }
+
+            // EVs: 92 HP / 109 Atk / 69 Def / 87 SpA / 43 SpD / 110 Spe
+            const evMatch = line.match(/^EVs:\s*(.+)/i);
+            if (evMatch) {
+                evMatch[1].split('/').forEach(part => {
+                    const m = part.trim().match(/^(\d+)\s+(\S+)/);
+                    if (!m) return;
+                    const key = SD_STAT_MAP[m[2].toLowerCase()];
+                    if (key) slot.ev[key] = String(Math.min(252, Math.max(0, parseInt(m[1], 10))));
+                });
+                continue;
+            }
+
+            // IVs: 31 HP / 26 Atk / 19 Def / 12 SpA / 11 SpD / 28 Spe
+            const ivMatch = line.match(/^IVs:\s*(.+)/i);
+            if (ivMatch) {
+                ivMatch[1].split('/').forEach(part => {
+                    const m = part.trim().match(/^(\d+)\s+(\S+)/);
+                    if (!m) return;
+                    const key = SD_STAT_MAP[m[2].toLowerCase()];
+                    if (key) slot.iv[key] = String(Math.min(31, Math.max(0, parseInt(m[1], 10))));
+                });
+                continue;
+            }
+
+            // - Move Name
+            if (line.startsWith('- ')) {
+                moveNames.push(line.slice(2).trim());
+                continue;
+            }
+
+            // Shiny: Yes / Tera Type: ... (ignore gracefully)
+        }
+
+        // ── Resolve move names → type + category via MOVE_INFO
+        slot.moveNames = Array.from({ length: 4 }, (_, i) => moveNames[i] || '');
+        slot.moveNames.forEach((mn, i) => {
+            if (!mn) return;
+            // MOVE_INFO keys use the Showdown identifier (lowercase-hyphenated)
+            const key = mn.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+            const info = MOVE_INFO[mn] || MOVE_INFO[key] || {};
+            slot.moves[i]    = info.type || '';
+            slot.moveCats[i] = info.cat  || '';
+        });
+
+        return slot;
+    }
+
+    /**
+     * Parse a full paste that may contain multiple Pokémon blocks
+     * (separated by blank lines).  Returns array of parsed slots.
+     */
+    function parseShowdownPaste(text) {
+        // Split on one-or-more blank lines
+        const blocks = text.split(/\n\s*\n/).map(b => b.trim()).filter(b => b.length);
+        return blocks.map(parseShowdownBlock).filter(Boolean);
+    }
+
+    /** Insert one or more parsed slots into the first available team slots */
+    function importFromShowdown(slots) {
+        let added = 0;
+        for (const parsed of slots) {
+            const idx = team.findIndex(s => !s.pokemonId);
+            if (idx === -1) break;
+            team[idx] = normalizeSlot(parsed);
+            added++;
+        }
+        saveTeam();
+        renderTeamSlots();
+        return added;
+    }
+
+    // ── Build the modal overlay (injected once into <body>) ───────────
+    (function injectShowdownModal() {
+        const overlay = document.createElement('div');
+        overlay.id = 'sdImportOverlay';
+        overlay.style.cssText = [
+            'display:none', 'position:fixed', 'inset:0', 'z-index:9999',
+            'background:rgba(0,0,0,.75)', 'backdrop-filter:blur(4px)',
+            'align-items:center', 'justify-content:center', 'padding:16px'
+        ].join(';');
+
+        overlay.innerHTML = `
+          <div style="
+            background:#13132a; border:1.5px solid #252545; border-radius:14px;
+            width:100%; max-width:560px; padding:24px; position:relative;
+            font-family:'Nunito',sans-serif; color:#e8e8ff;
+          ">
+            <button id="sdClose" style="
+              position:absolute; top:14px; right:14px; background:#1a1a30;
+              border:1px solid #252545; color:#7070aa; border-radius:50%;
+              width:28px; height:28px; cursor:pointer; font-size:15px;
+              display:flex; align-items:center; justify-content:center;
+            " title="Close">✕</button>
+
+            <h3 style="font-family:'Press Start 2P',monospace; font-size:11px;
+              color:#ffcc00; margin-bottom:4px; letter-spacing:1px;">
+              📋 PASTE FROM SHOWDOWN
+            </h3>
+            <p style="font-size:11px; color:#7070aa; margin-bottom:14px;">
+              Paste one or more Pokémon in Showdown export format. Multiple Pokémon
+              should be separated by a blank line.
+            </p>
+
+            <textarea id="sdPasteArea" rows="12" spellcheck="false" style="
+              width:100%; background:#1a1a30; border:1.5px solid #252545;
+              border-radius:8px; color:#e8e8ff; font-family:monospace;
+              font-size:12px; padding:10px 12px; outline:none; resize:vertical;
+              line-height:1.5;
+            " placeholder="Floatzel @ Leftovers
+Level: 63
+Bashful Nature
+Ability: Swift Swim
+EVs: 92 HP / 109 Atk / 69 Def / 87 SpA / 43 SpD / 110 Spe
+IVs: 31 HP / 26 Atk / 19 Def / 12 SpA / 11 SpD / 28 Spe
+- Dig
+- Liquidation
+- Waterfall
+- Surf"></textarea>
+
+            <div style="display:flex; gap:10px; margin-top:12px; align-items:center;">
+              <button id="sdImportBtn" style="
+                padding:9px 22px; border-radius:50px; border:none; cursor:pointer;
+                background:#ffcc00; color:#0d0d1a; font-family:'Nunito',sans-serif;
+                font-size:13px; font-weight:900; transition:filter .15s;
+              ">⬇️ Import to Team</button>
+              <span id="sdMsg" style="font-size:12px; font-weight:800; color:#51cf66; opacity:0; transition:opacity .3s;"></span>
+            </div>
+          </div>`;
+
+        document.body.appendChild(overlay);
+
+        // ── Show/hide helpers
+        function openModal() {
+            overlay.style.display = 'flex';
+            document.getElementById('sdPasteArea').focus();
+        }
+        function closeModal() {
+            overlay.style.display = 'none';
+            document.getElementById('sdPasteArea').value = '';
+            document.getElementById('sdMsg').style.opacity = '0';
+        }
+
+        overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+        document.getElementById('sdClose').addEventListener('click', closeModal);
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && overlay.style.display === 'flex') closeModal(); });
+
+        // ── Import button
+        document.getElementById('sdImportBtn').addEventListener('click', () => {
+            const text = document.getElementById('sdPasteArea').value.trim();
+            if (!text) { alert('Please paste some Pokémon data first.'); return; }
+
+            const parsed = parseShowdownPaste(text);
+            if (!parsed.length) {
+                alert('Could not recognise any Pokémon in the pasted text.\nMake sure you use the Showdown export format.');
+                return;
+            }
+
+            const added = importFromShowdown(parsed);
+            const msg = document.getElementById('sdMsg');
+
+            if (added === 0) {
+                alert('Your team is full! Clear a slot first.');
+                return;
+            }
+
+            msg.textContent = `✓ Added ${added} Pokémon!`;
+            msg.style.opacity = '1';
+            setTimeout(() => { msg.style.opacity = '0'; }, 2500);
+
+            // Close modal after short delay so user sees the confirmation
+            setTimeout(closeModal, 1400);
+        });
+
+        // ── Expose openModal so the button in teamTop can call it
+        window._openShowdownModal = openModal;
+    })();
+
+    // ── Wire the "Paste Showdown" button that lives in teamTop ────────
+    // The button is injected into the DOM here so it stays in sync with
+    // the rest of the team toolbar without touching index.html.
+    (function injectPasteButton() {
+        const autoBtn = document.getElementById('autoTeamBtn');
+        if (!autoBtn) return;
+        const btn = document.createElement('button');
+        btn.className = 'teamTool';
+        btn.type = 'button';
+        btn.id = 'sdPasteBtn';
+        btn.textContent = '📋 Paste Showdown';
+        btn.style.cssText = 'border-color:#4dabf7; color:#4dabf7; background:rgba(77,171,247,0.1);';
+        btn.addEventListener('click', () => window._openShowdownModal && window._openShowdownModal());
+        // Insert right before the autoTeamBtn
+        autoBtn.parentNode.insertBefore(btn, autoBtn);
+    })();
 
     openTeam();
 })();
