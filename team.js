@@ -559,7 +559,7 @@ IVs: 31 HP / 26 Atk / 19 Def / 12 SpA / 11 SpD / 28 Spe
         btn.className = 'teamTool';
         btn.type = 'button';
         btn.id = 'sdPasteBtn';
-        btn.textContent = '📋 Paste Showdown';
+        btn.textContent = '📋 Paste Pokemon';
         btn.style.cssText = 'border-color:#4dabf7; color:#4dabf7; background:rgba(77,171,247,0.1);';
         btn.addEventListener('click', () => window._openShowdownModal && window._openShowdownModal());
         // Insert right before the autoTeamBtn
