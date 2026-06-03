@@ -169,6 +169,7 @@ function importFromShowdown(slots) {
         'align-items:center', 'justify-content:center', 'padding:16px'
     ].join(';');
 
+
     overlay.innerHTML = `
       <div style="background:#13132a; border:1.5px solid #252545; border-radius:14px; width:100%; max-width:560px; padding:24px; position:relative; font-family:'Nunito',sans-serif; color:#e8e8ff;">
         <button id="sdClose" style="position:absolute; top:14px; right:14px; background:#1a1a30; border:1px solid #252545; color:#7070aa; border-radius:50%; width:28px; height:28px; cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center;" title="Close">✕</button>
@@ -212,4 +213,87 @@ function importFromShowdown(slots) {
     });
 
     window._openShowdownModal = openModal;
+})();
+
+    // --- ΝΕΟ: SHAREABLE TEAM LINKS ---
+
+// 1. Δημιουργία και αντιγραφή του Share Link
+function generateShareLink() {
+    const filled = team.filter(s => s.pokemonId);
+    if (!filled.length) { alert('Your team is empty! Add some Pokémon before sharing.'); return; }
+    
+    try {
+        const json = JSON.stringify(filled);
+        const b64 = btoa(encodeURIComponent(json)); // Μετατροπή σε Base64, ασφαλές για URL
+        const url = window.location.origin + window.location.pathname + '#team=' + b64;
+        
+        navigator.clipboard.writeText(url).then(() => {
+            alert('🔗 Share Link copied to clipboard!\n\nSend this link to your friends, and they will instantly see your exact team setup.');
+        }).catch(() => {
+            // Αν ο browser μπλοκάρει το clipboard
+            prompt('Copy this link to share your team:', url);
+        });
+    } catch (e) {
+        alert('An error occurred while generating the link.');
+    }
+}
+
+// 2. Έλεγχος κατά το άνοιγμα της σελίδας: Αν υπάρχει link, φόρτωσε την ομάδα
+window.addEventListener('DOMContentLoaded', () => {
+    if (window.location.hash.startsWith('#team=')) {
+        try {
+            const b64 = window.location.hash.slice(6); // Παίρνει ότι είναι μετά το "#team="
+            const json = decodeURIComponent(atob(b64));
+            const parsed = JSON.parse(json);
+            
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                // Δημιουργούμε ένα νέο "Tab" για την εισαγόμενη ομάδα
+                const newTeamName = "Shared Team " + Math.floor(Math.random() * 1000);
+                allData.teams.push({ name: newTeamName, slots: Array.from({ length: TEAM_SIZE }, () => EMPTY_SLOT()) });
+                currentTeamIndex = allData.teams.length - 1;
+                team = allData.teams[currentTeamIndex].slots;
+                
+                // Γεμίζουμε τα slots
+                parsed.forEach((slotData, i) => {
+                    if (i < TEAM_SIZE) team[i] = normalizeSlot(slotData);
+                });
+                
+                saveTeam();
+                
+                // Καθαρίζουμε το URL για να μην ξαναφορτωθεί στο επόμενο refresh
+                window.history.replaceState(null, null, window.location.pathname);
+                
+                // Ανοίγουμε το Team Builder αυτόματα
+                setTimeout(() => {
+                    if (typeof openTeam === 'function') openTeam();
+                    if (typeof updateTeamDropdown === 'function') updateTeamDropdown();
+                    if (typeof renderTeamSlots === 'function') renderTeamSlots();
+                }, 300);
+            }
+        } catch (e) {
+            console.error('Link Error:', e);
+            alert('The shared team link is invalid or corrupted.');
+            window.history.replaceState(null, null, window.location.pathname);
+        }
+    }
+});
+
+// 3. Δημιουργία του Κουμπιού "Share Link" δυναμικά
+(function injectShareButton() {
+    window.addEventListener('DOMContentLoaded', () => {
+        const exportBtn = document.getElementById('teamExport');
+        if (!exportBtn) return;
+        
+        const shareBtn = document.createElement('button');
+        shareBtn.className = 'teamTool';
+        shareBtn.type = 'button';
+        shareBtn.id = 'shareLinkBtn';
+        shareBtn.innerHTML = '🔗 Share Link';
+        shareBtn.style.cssText = 'border-color:#b197fc; color:#b197fc; background:rgba(177,151,252,0.1); margin-right: 5px;';
+        
+        shareBtn.addEventListener('click', generateShareLink);
+        
+        // Το βάζουμε δίπλα στο κουμπί Export
+        exportBtn.parentNode.insertBefore(shareBtn, exportBtn);
+    });
 })();
