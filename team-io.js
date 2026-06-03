@@ -89,7 +89,7 @@ function parseShowdownBlock(text) {
         }
 
         // ABILITY: Πιάνει το "Ability: Swift Swim"
-        const abilMatch = line.match(/^Ability:\s*(.+)/i);
+    const abilMatch = line.match(/^Ability:\s*(.+)/i);
         if (abilMatch) { 
             slot.ability = abilMatch[1].trim(); 
             continue; 
