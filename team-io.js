@@ -1,4 +1,3 @@
-
 // --- team-io.js : Showdown Parser & Import/Export ---
 
 function exportTeam() { 
@@ -38,6 +37,7 @@ const SD_STAT_MAP = {
     'special-attack': 'SPATK', 'special-defense': 'SPDEF', speed: 'SPD'
 };
 
+// --- Ενισχυμένος Showdown Parser ---
 function parseShowdownBlock(text) {
     const lines = text.split('\n').map(l => l.trim()).filter(l => l.length);
     if (!lines.length) return null;
@@ -45,12 +45,15 @@ function parseShowdownBlock(text) {
     const slot = EMPTY_SLOT();
     const moveNames = [];
 
+    // 1. Διάβασμα Ονόματος και Item
     const firstLine = lines[0];
-    const atIdx = firstLine.indexOf(' @ ');
+    const atIdx = firstLine.indexOf('@'); // Πιο forgiving, χωρίς να απαιτεί κενά γύρω από το @
     let rawName = atIdx !== -1 ? firstLine.slice(0, atIdx).trim() : firstLine.trim();
-    if (atIdx !== -1) slot.item = firstLine.slice(atIdx + 3).trim();
+    if (atIdx !== -1) {
+        slot.item = firstLine.slice(atIdx + 1).trim();
+    }
 
-    rawName = rawName.replace(/\s*\((M|F)\)\s*$/, '').trim();
+    rawName = rawName.replace(/\s*\((M|F)\)\s*$/, '').trim(); // Αφαίρεση (M) / (F)
 
     const nicknameMatch = rawName.match(/^.+\((.+)\)\s*$/);
     if (nicknameMatch) rawName = nicknameMatch[1].trim();
@@ -65,22 +68,34 @@ function parseShowdownBlock(text) {
     if (!pokemon) return null;   
     slot.pokemonId = pokemon.id;
 
+    // 2. Διάβασμα υπολοίπων γραμμών
     for (let li = 1; li < lines.length; li++) {
         const line = lines[li];
 
+        // LEVEL: Πιάνει το "Level: 50" ή "Level:50"
         const lvMatch = line.match(/^Level:\s*(\d+)/i);
-        if (lvMatch) { slot.level = parseInt(lvMatch[1], 10); continue; }
+        if (lvMatch) { 
+            slot.level = parseInt(lvMatch[1], 10); 
+            continue; 
+        }
 
-        const natMatch = line.match(/^(\w+)\s+Nature$/i);
+        // NATURE: Πιάνει το "Timid Nature"
+        const natMatch = line.match(/^([a-zA-Z]+)\s+nature/i);
         if (natMatch) {
-            const nat = natMatch[1];
+            const nat = natMatch[1].trim();
+            // Μετατροπή στο σωστό format (π.χ. "Timid")
             slot.nature = nat.charAt(0).toUpperCase() + nat.slice(1).toLowerCase();
             continue;
         }
 
+        // ABILITY: Πιάνει το "Ability: Swift Swim"
         const abilMatch = line.match(/^Ability:\s*(.+)/i);
-        if (abilMatch) { slot.ability = abilMatch[1].trim(); continue; }
+        if (abilMatch) { 
+            slot.ability = abilMatch[1].trim(); 
+            continue; 
+        }
 
+        // EVs: Πιάνει το "EVs: 252 SpA / 4 SpD / 252 Spe"
         const evMatch = line.match(/^EVs:\s*(.+)/i);
         if (evMatch) {
             evMatch[1].split('/').forEach(part => {
@@ -92,6 +107,7 @@ function parseShowdownBlock(text) {
             continue;
         }
 
+        // IVs: Πιάνει το "IVs: 0 Atk"
         const ivMatch = line.match(/^IVs:\s*(.+)/i);
         if (ivMatch) {
             ivMatch[1].split('/').forEach(part => {
@@ -103,17 +119,19 @@ function parseShowdownBlock(text) {
             continue;
         }
 
+        // MOVES: Πιάνει το "- Thunderbolt"
         if (line.startsWith('- ')) {
             moveNames.push(line.slice(2).trim());
             continue;
         }
     }
 
+    // Καταχώρηση κινήσεων
     slot.moveNames = Array.from({ length: 4 }, (_, i) => moveNames[i] || '');
     slot.moveNames.forEach((mn, i) => {
         if (!mn) return;
         const key = mn.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-        const info = MOVE_INFO[mn] || MOVE_INFO[key] || {};
+        const info = typeof MOVE_INFO !== 'undefined' ? (MOVE_INFO[mn] || MOVE_INFO[key] || {}) : {};
         slot.moves[i]    = info.type || '';
         slot.moveCats[i] = info.cat  || '';
     });
@@ -154,7 +172,7 @@ function importFromShowdown(slots) {
         <button id="sdClose" style="position:absolute; top:14px; right:14px; background:#1a1a30; border:1px solid #252545; color:#7070aa; border-radius:50%; width:28px; height:28px; cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center;" title="Close">✕</button>
         <h3 style="font-family:'Press Start 2P',monospace; font-size:11px; color:#ffcc00; margin-bottom:4px; letter-spacing:1px;">📋 PASTE FROM SHOWDOWN</h3>
         <p style="font-size:11px; color:#7070aa; margin-bottom:14px;">Paste one or more Pokémon in Showdown export format. Multiple Pokémon should be separated by a blank line.</p>
-        <textarea id="sdPasteArea" rows="12" spellcheck="false" style="width:100%; background:#1a1a30; border:1.5px solid #252545; border-radius:8px; color:#e8e8ff; font-family:monospace; font-size:12px; padding:10px 12px; outline:none; resize:vertical; line-height:1.5;" placeholder="Floatzel @ Leftovers..."></textarea>
+        <textarea id="sdPasteArea" rows="12" spellcheck="false" style="width:100%; background:#1a1a30; border:1.5px solid #252545; border-radius:8px; color:#e8e8ff; font-family:monospace; font-size:12px; padding:10px 12px; outline:none; resize:vertical; line-height:1.5;" placeholder="Pikachu @ Light Ball\nAbility: Static\nLevel: 50\nTimid Nature\nEVs: 252 SpA / 4 SpD / 252 Spe\n- Thunderbolt\n- Volt Switch\n- Surf\n- Grass Knot"></textarea>
         <div style="display:flex; gap:10px; margin-top:12px; align-items:center;">
           <button id="sdImportBtn" style="padding:9px 22px; border-radius:50px; border:none; cursor:pointer; background:#ffcc00; color:#0d0d1a; font-family:'Nunito',sans-serif; font-size:13px; font-weight:900; transition:filter .15s;">⬇️ Import to Team</button>
           <span id="sdMsg" style="font-size:12px; font-weight:800; color:#51cf66; opacity:0; transition:opacity .3s;"></span>
@@ -181,7 +199,7 @@ function importFromShowdown(slots) {
         const text = document.getElementById('sdPasteArea').value.trim();
         if (!text) { alert('Please paste some Pokémon data first.'); return; }
         const parsed = parseShowdownPaste(text);
-        if (!parsed.length) { alert('Could not recognise any Pokémon in the pasted text.'); return; }
+        if (!parsed.length) { alert('Could not recognise any Pokémon in the pasted text. Check your spelling or formatting.'); return; }
         const added = importFromShowdown(parsed);
         const msg = document.getElementById('sdMsg');
         if (added === 0) { alert('Your team is full! Clear a slot first.'); return; }
