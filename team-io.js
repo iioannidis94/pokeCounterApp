@@ -88,10 +88,12 @@ function parseShowdownBlock(text) {
             continue;
         }
 
-        // ABILITY: Πιάνει το "Ability: Swift Swim"
-    const abilMatch = line.match(/^Ability:\s*(.+)/i);
+
+// ABILITY: Πιάνει το "Ability: Swift Swim"
+        const abilMatch = line.match(/^Ability:\s*(.+)/i);
         if (abilMatch) { 
-            slot.ability = abilMatch[1].trim(); 
+            // Μετατροπή σε πεζά και αντικατάσταση κενών με παύλες για να ταιριάζει με το data.js
+            slot.ability = abilMatch[1].trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'); 
             continue; 
         }
 
