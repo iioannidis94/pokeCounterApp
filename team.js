@@ -5,6 +5,7 @@
     const HELD_ITEMS = ['Leftovers', 'Choice Band', 'Choice Scarf', 'Choice Specs', 'Life Orb', 'Focus Sash', 'Assault Vest', 'Heavy-Duty Boots', 'Eviolite', 'Rocky Helmet', 'Black Sludge', 'Sitrus Berry', 'Lum Berry', 'Weakness Policy', 'Expert Belt', 'Air Balloon', 'Throat Spray', 'Loaded Dice', 'Covert Cloak', 'Clear Amulet', 'Booster Energy', 'Terrain Extender', 'Light Clay', 'Damp Rock', 'Heat Rock', 'Icy Rock', 'Smooth Rock', 'Safety Goggles', 'Power Herb', 'Mental Herb', 'White Herb', 'Red Card', 'Eject Button', 'Eject Pack', 'Mirror Herb', 'Punching Glove', 'Muscle Band', 'Wise Glasses', 'Shell Bell', 'Metronome', 'Flame Orb', 'Toxic Orb'];
     const TEAM_NATURE_EFFECTS = { Lonely: ['ATK', 'DEF'], Brave: ['ATK', 'SPD'], Adamant: ['ATK', 'SPATK'], Naughty: ['ATK', 'SPDEF'], Bold: ['DEF', 'ATK'], Relaxed: ['DEF', 'SPD'], Impish: ['DEF', 'SPATK'], Lax: ['DEF', 'SPDEF'], Timid: ['SPD', 'ATK'], Hasty: ['SPD', 'DEF'], Jolly: ['SPD', 'SPATK'], Naive: ['SPD', 'SPDEF'], Modest: ['SPATK', 'ATK'], Mild: ['SPATK', 'DEF'], Quiet: ['SPATK', 'SPD'], Rash: ['SPATK', 'SPDEF'], Calm: ['SPDEF', 'ATK'], Gentle: ['SPDEF', 'DEF'], Sassy: ['SPDEF', 'SPD'], Careful: ['SPDEF', 'SPATK'] };
     
+    // ΠΡΟΣΘΗΚΗ: level: 100 στο EMPTY_SLOT
     const EMPTY_SLOT = () => ({ pokemonId: null, level: 100, nature: '', ability: '', item: '', calc: false, moveNames: ['', '', '', ''], moves: ['', '', '', ''], moveCats: ['', '', '', ''], iv: { HP: '', ATK: '', DEF: '', SPATK: '', SPDEF: '', SPD: '' }, ev: { HP: '', ATK: '', DEF: '', SPATK: '', SPDEF: '', SPD: '' } });
     
     const MULTI_TEAM_KEY = 'pokedex_multiteam_v1';
@@ -27,13 +28,8 @@
         return { activeIndex: 0, teams: [{ name: 'Main Team', slots: oldTeam }] };
     }
 
-    function normalizeSlot(slot) { 
-    const base = EMPTY_SLOT(); 
-    if (!slot || typeof slot !== 'object') return base; 
-    base.pokemonId = slot.pokemonId ? Number(slot.pokemonId) : null; 
-    base.level = slot.level !== undefined ? Number(slot.level) : 100; // <--- ΠΡΟΣΘΗΚΗ ΕΔΩ
-    base.nature = slot.nature ? String(slot.nature) : ''; 
-    base.ability = slot.ability ? String(slot.ability) : ''; base.item = slot.item ? String(slot.item) : ''; base.calc = !!slot.calc; base.moveNames = Array.from({ length: 4 }, (_, i) => slot.moveNames && slot.moveNames[i] ? String(slot.moveNames[i]) : ''); base.moves = Array.from({ length: 4 }, (_, i) => slot.moves && slot.moves[i] ? String(slot.moves[i]) : ''); base.moveCats = Array.from({ length: 4 }, (_, i) => slot.moveCats && slot.moveCats[i] ? String(slot.moveCats[i]) : ''); TEAM_STATS.forEach(st => { base.iv[st] = slot.iv && slot.iv[st] !== undefined ? String(slot.iv[st]) : ''; base.ev[st] = slot.ev && slot.ev[st] !== undefined ? String(slot.ev[st]) : '' }); return base }
+    // ΠΡΟΣΘΗΚΗ: φόρτωση του base.level στη normalizeSlot
+    function normalizeSlot(slot) { const base = EMPTY_SLOT(); if (!slot || typeof slot !== 'object') return base; base.pokemonId = slot.pokemonId ? Number(slot.pokemonId) : null; base.level = slot.level !== undefined ? Number(slot.level) : 100; base.nature = slot.nature ? String(slot.nature) : ''; base.ability = slot.ability ? String(slot.ability) : ''; base.item = slot.item ? String(slot.item) : ''; base.calc = !!slot.calc; base.moveNames = Array.from({ length: 4 }, (_, i) => slot.moveNames && slot.moveNames[i] ? String(slot.moveNames[i]) : ''); base.moves = Array.from({ length: 4 }, (_, i) => slot.moves && slot.moves[i] ? String(slot.moves[i]) : ''); base.moveCats = Array.from({ length: 4 }, (_, i) => slot.moveCats && slot.moveCats[i] ? String(slot.moveCats[i]) : ''); TEAM_STATS.forEach(st => { base.iv[st] = slot.iv && slot.iv[st] !== undefined ? String(slot.iv[st]) : ''; base.ev[st] = slot.ev && slot.ev[st] !== undefined ? String(slot.ev[st]) : '' }); return base }
 
     function saveTeam() {
         allData.teams[currentTeamIndex].slots = team;
@@ -97,11 +93,14 @@
     if (spa > atk && spa > 100) return 'special';
 
     // 2. Αν δεν υπάρχουν EVs, χρησιμοποίησε τα Base Stats από το data.js
-    const stats = BASE_STATS[p.id];
-    if (stats) {
-        if (stats.def > 100 || stats.spd > 100) return 'tank';
-        if (stats.atk > stats.spa + 20) return 'physical';
-        if (stats.spa > stats.atk + 20) return 'special';
+    // Αν δεν υπάρχει το BASE_STATS object, επιστρέφει mixed
+    if (typeof BASE_STATS !== 'undefined') {
+        const stats = BASE_STATS[p.id];
+        if (stats) {
+            if (stats.def > 100 || stats.spd > 100) return 'tank';
+            if (stats.atk > stats.spa + 20) return 'physical';
+            if (stats.spa > stats.atk + 20) return 'special';
+        }
     }
     return 'mixed';
 }; 
@@ -111,13 +110,14 @@
             pool.filter(x => !bestTeam.includes(x)).forEach(candidate => {
                 let score = 0;
                 let cTypes = candidate.p.types;
-                let cRole = getRole(candidate.slot, candidate.p); // Χρησιμοποιεί τη νέα getRole
+                let cRole = getRole(candidate.slot, candidate.p); 
 
-                // --- ΝΕΟ: Bonus βάσει Base Stats (BST) ---
-                const stats = BASE_STATS[candidate.p.id];
-                if (stats) {
-                    let bst = stats.hp + stats.atk + stats.def + stats.spa + stats.spd + stats.spe;
-                    score += (bst - 300) / 10; // Τα δυνατά Pokémon παίρνουν αυτόματα μεγαλύτερο score
+                if (typeof BASE_STATS !== 'undefined') {
+                    const stats = BASE_STATS[candidate.p.id];
+                    if (stats) {
+                        let bst = stats.hp + stats.atk + stats.def + stats.spa + stats.spd + stats.spe;
+                        score += (bst - 300) / 10;
+                    }
                 }
 
                 if (bestTeam.length === 0) {
@@ -126,7 +126,6 @@
                     return;
                 }
 
-                // ... (Ο υπόλοιπος κώδικας για weaknesses και moves παραμένει ίδιος) ...
                 let teamWeaknesses = {};
                 AT.forEach(t => teamWeaknesses[t] = 0);
                 bestTeam.forEach(member => {
@@ -194,7 +193,17 @@
             const p = POKE.find(x => x.id === slot.pokemonId); 
             if (!p) return ''; 
             const head = `<div class="slotImg">${spriteImg(p)}</div><div><div class="slotNum">Team ${displayIndex + 1}/${TEAM_SIZE} · #${String(p.id).padStart(4, '0')}</div><div class="slotName">${p.name.replace(/-/g, ' ')}</div><div class="slotTypes">${p.types.map(t => tb(t)).join('')}</div></div>`; 
-            const meta = `<div class="metaGrid"><label>Nature<select data-slot="${i}" data-field="nature"><option value="">Select nature</option>${TEAM_NATURES.map(n => `<option value="${n}" ${slot.nature === n ? 'selected' : ''}>${n}</option>`).join('')}</select></label><label>Ability<select data-slot="${i}" data-field="ability"><option value="">Select ability</option>${(ABILITIES[String(p.id)] || []).map(a => `<option value="${a}" ${slot.ability === a ? 'selected' : ''}>${a.replace(/-/g, ' ')}</option>`).join('')}</select></label><label>Held Item<select data-slot="${i}" data-field="item"><option value="">No item</option>${HELD_ITEMS.map(item => `<option value="${item}" ${slot.item === item ? 'selected' : ''}>${item}</option>`).join('')}</select></label></div>`; 
+            
+            // ΠΡΟΣΘΗΚΗ: Level Input μέσα στο metaGrid
+            const meta = `<div class="metaGrid">
+                <label>Level
+                    <input type="number" min="1" max="100" value="${slot.level}" data-slot="${i}" data-field="level" style="width:100%; min-width:0; background:var(--bg); border:1px solid var(--brd); border-radius:7px; color:var(--txt); font:800 12px 'Nunito',sans-serif; padding:6px; outline:none; text-align:center;">
+                </label>
+                <label>Nature<select data-slot="${i}" data-field="nature"><option value="">Select nature</option>${TEAM_NATURES.map(n => `<option value="${n}" ${slot.nature === n ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+                <label>Ability<select data-slot="${i}" data-field="ability"><option value="">Select ability</option>${(ABILITIES[String(p.id)] || []).map(a => `<option value="${a}" ${slot.ability === a ? 'selected' : ''}>${a.replace(/-/g, ' ')}</option>`).join('')}</select></label>
+                <label>Held Item<select data-slot="${i}" data-field="item"><option value="">No item</option>${HELD_ITEMS.map(item => `<option value="${item}" ${slot.item === item ? 'selected' : ''}>${item}</option>`).join('')}</select></label>
+            </div>`; 
+            
             const stats = TEAM_STATS.map(st => { const nc = natureClass(slot.nature, st), ivClass = nc ? `iv${nc[0].toUpperCase() + nc.slice(1)}` : ""; return `<div class="statBox ${nc}"><label>${st}</label><div class="statInputs"><span>IV</span><span>EV</span><input class="${ivClass}" type="number" min="0" max="31" value="${slot.iv[st]}" data-slot="${i}" data-kind="iv" data-stat="${st}" placeholder="0"><input type="number" min="0" max="252" value="${slot.ev[st]}" data-slot="${i}" data-kind="ev" data-stat="${st}" placeholder="0"></div></div>` }).join(''); 
             const moveList = MOVES_BY_POKEMON[String(p.id)] || []; 
             
@@ -252,9 +261,15 @@
     document.getElementById('teamSearch').addEventListener('input', e => { teamQuery = e.target.value; renderTeamList() }); 
     document.getElementById('teamList').addEventListener('click', e => { const btn = e.target.closest('.pickMon'); if (btn) addToTeam(Number(btn.dataset.id)) }); 
     
+    // ΠΡΟΣΘΗΚΗ: Event Listener για το Level Input
     document.getElementById('teamSlots').addEventListener('input', e => { 
-        if (e.target.matches('input[data-slot]')) {
+        if (e.target.matches('input[data-slot][data-kind]')) {
             setStat(Number(e.target.dataset.slot), e.target.dataset.kind, e.target.dataset.stat, e.target.value, e.target);
+        } else if (e.target.matches('input[data-field="level"]')) {
+            let val = parseInt(e.target.value, 10);
+            if (isNaN(val) || val < 1) val = 1;
+            if (val > 100) val = 100;
+            setMeta(Number(e.target.dataset.slot), 'level', val);
         }
     });
     
@@ -297,34 +312,18 @@
         renderTeamSlots(); 
     });
 
-    // Η κλήση για το νέο Auto-Build AI
     document.getElementById('autoTeamBtn')?.addEventListener('click', autoRecommendTeam);
 
     // ─────────────────────────────────────────────────────────────────
     // SHOWDOWN PASTE IMPORT
-    // Parses the Pokémon Showdown export format:
-    //   Floatzel @ Leftovers
-    //   Level: 63
-    //   Bashful Nature
-    //   Ability: Swift Swim
-    //   EVs: 92 HP / 109 Atk / 69 Def / 87 SpA / 43 SpD / 110 Spe
-    //   IVs: 31 HP / 26 Atk / 19 Def / 12 SpA / 11 SpD / 28 Spe
-    //   - Dig
-    //   - Liquidation
     // ─────────────────────────────────────────────────────────────────
 
-    /** Map Showdown stat abbreviations → our internal keys */
     const SD_STAT_MAP = {
         hp: 'HP', atk: 'ATK', def: 'DEF',
         spa: 'SPATK', spd: 'SPDEF', spe: 'SPD',
-        // some exports use full names
         'special-attack': 'SPATK', 'special-defense': 'SPDEF', speed: 'SPD'
     };
 
-    /**
-     * Parse a single Showdown-format block (one Pokémon).
-     * Returns a slot object ready for normalizeSlot(), or null on failure.
-     */
     function parseShowdownBlock(text) {
         const lines = text.split('\n').map(l => l.trim()).filter(l => l.length);
         if (!lines.length) return null;
@@ -332,53 +331,43 @@
         const slot = EMPTY_SLOT();
         const moveNames = [];
 
-        // ── Line 1: "Name (Nickname) @ Item"  or  "Name @ Item"  or  just "Name"
         const firstLine = lines[0];
         const atIdx = firstLine.indexOf(' @ ');
         let rawName = atIdx !== -1 ? firstLine.slice(0, atIdx).trim() : firstLine.trim();
         if (atIdx !== -1) slot.item = firstLine.slice(atIdx + 3).trim();
 
-        // Strip gender tokens like "(M)" / "(F)"
         rawName = rawName.replace(/\s*\((M|F)\)\s*$/, '').trim();
 
-        // Strip nickname: "Nickname (SpeciesName)" → use SpeciesName
         const nicknameMatch = rawName.match(/^.+\((.+)\)\s*$/);
         if (nicknameMatch) rawName = nicknameMatch[1].trim();
 
-        // Normalise to the identifier format used in POKE (lowercase, hyphens)
         const normalised = rawName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-        // Try exact match first, then partial
         let pokemon = POKE.find(p => p.name === normalised)
             || POKE.find(p => p.name.startsWith(normalised))
             || POKE.find(p => normalised.startsWith(p.name))
             || POKE.find(p => p.name.replace(/-/g, '') === normalised.replace(/-/g, ''));
 
-        if (!pokemon) return null;   // unknown Pokémon → bail out
+        if (!pokemon) return null;   
         slot.pokemonId = pokemon.id;
 
-        // ── Remaining lines
         for (let li = 1; li < lines.length; li++) {
             const line = lines[li];
 
-            // Level: 63
+            // Υποστήριξη Level
             const lvMatch = line.match(/^Level:\s*(\d+)/i);
             if (lvMatch) { slot.level = parseInt(lvMatch[1], 10); continue; }
 
-            // Bashful Nature
             const natMatch = line.match(/^(\w+)\s+Nature$/i);
             if (natMatch) {
                 const nat = natMatch[1];
-                // capitalise first letter to match our TEAM_NATURES list
                 slot.nature = nat.charAt(0).toUpperCase() + nat.slice(1).toLowerCase();
                 continue;
             }
 
-            // Ability: Swift Swim
             const abilMatch = line.match(/^Ability:\s*(.+)/i);
             if (abilMatch) { slot.ability = abilMatch[1].trim(); continue; }
 
-            // EVs: 92 HP / 109 Atk / 69 Def / 87 SpA / 43 SpD / 110 Spe
             const evMatch = line.match(/^EVs:\s*(.+)/i);
             if (evMatch) {
                 evMatch[1].split('/').forEach(part => {
@@ -390,7 +379,6 @@
                 continue;
             }
 
-            // IVs: 31 HP / 26 Atk / 19 Def / 12 SpA / 11 SpD / 28 Spe
             const ivMatch = line.match(/^IVs:\s*(.+)/i);
             if (ivMatch) {
                 ivMatch[1].split('/').forEach(part => {
@@ -402,20 +390,15 @@
                 continue;
             }
 
-            // - Move Name
             if (line.startsWith('- ')) {
                 moveNames.push(line.slice(2).trim());
                 continue;
             }
-
-            // Shiny: Yes / Tera Type: ... (ignore gracefully)
         }
 
-        // ── Resolve move names → type + category via MOVE_INFO
         slot.moveNames = Array.from({ length: 4 }, (_, i) => moveNames[i] || '');
         slot.moveNames.forEach((mn, i) => {
             if (!mn) return;
-            // MOVE_INFO keys use the Showdown identifier (lowercase-hyphenated)
             const key = mn.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
             const info = MOVE_INFO[mn] || MOVE_INFO[key] || {};
             slot.moves[i]    = info.type || '';
@@ -425,17 +408,11 @@
         return slot;
     }
 
-    /**
-     * Parse a full paste that may contain multiple Pokémon blocks
-     * (separated by blank lines).  Returns array of parsed slots.
-     */
     function parseShowdownPaste(text) {
-        // Split on one-or-more blank lines
         const blocks = text.split(/\n\s*\n/).map(b => b.trim()).filter(b => b.length);
         return blocks.map(parseShowdownBlock).filter(Boolean);
     }
 
-    /** Insert one or more parsed slots into the first available team slots */
     function importFromShowdown(slots) {
         let added = 0;
         for (const parsed of slots) {
@@ -449,7 +426,6 @@
         return added;
     }
 
-    // ── Build the modal overlay (injected once into <body>) ───────────
     (function injectShowdownModal() {
         const overlay = document.createElement('div');
         overlay.id = 'sdImportOverlay';
@@ -509,7 +485,6 @@ IVs: 31 HP / 26 Atk / 19 Def / 12 SpA / 11 SpD / 28 Spe
 
         document.body.appendChild(overlay);
 
-        // ── Show/hide helpers
         function openModal() {
             overlay.style.display = 'flex';
             document.getElementById('sdPasteArea').focus();
@@ -524,7 +499,6 @@ IVs: 31 HP / 26 Atk / 19 Def / 12 SpA / 11 SpD / 28 Spe
         document.getElementById('sdClose').addEventListener('click', closeModal);
         document.addEventListener('keydown', e => { if (e.key === 'Escape' && overlay.style.display === 'flex') closeModal(); });
 
-        // ── Import button
         document.getElementById('sdImportBtn').addEventListener('click', () => {
             const text = document.getElementById('sdPasteArea').value.trim();
             if (!text) { alert('Please paste some Pokémon data first.'); return; }
@@ -547,17 +521,12 @@ IVs: 31 HP / 26 Atk / 19 Def / 12 SpA / 11 SpD / 28 Spe
             msg.style.opacity = '1';
             setTimeout(() => { msg.style.opacity = '0'; }, 2500);
 
-            // Close modal after short delay so user sees the confirmation
             setTimeout(closeModal, 1400);
         });
 
-        // ── Expose openModal so the button in teamTop can call it
         window._openShowdownModal = openModal;
     })();
 
-    // ── Wire the "Paste Showdown" button that lives in teamTop ────────
-    // The button is injected into the DOM here so it stays in sync with
-    // the rest of the team toolbar without touching index.html.
     (function injectPasteButton() {
         const autoBtn = document.getElementById('autoTeamBtn');
         if (!autoBtn) return;
@@ -568,7 +537,6 @@ IVs: 31 HP / 26 Atk / 19 Def / 12 SpA / 11 SpD / 28 Spe
         btn.textContent = '📋 Paste Pokemon';
         btn.style.cssText = 'border-color:#4dabf7; color:#4dabf7; background:rgba(77,171,247,0.1);';
         btn.addEventListener('click', () => window._openShowdownModal && window._openShowdownModal());
-        // Insert right before the autoTeamBtn
         autoBtn.parentNode.insertBefore(btn, autoBtn);
     })();
 
